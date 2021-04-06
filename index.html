@@ -12,26 +12,27 @@
     <div class="container">
         <br>
         <h1>Convert SQL Statement into Laravel Eloquent</h1>
+        <br>
         <div class="container">
             <div class="row row-cols-1 row-cols-md-2 mb-2 text-center">
                 <div class="col">
                     <textarea rows="8" placeholder="SELECT * FROM users WHERE age = 6;" class="form-control disabled"></textarea>
-                    <button class="btn btn-primary">Convert</button>
                 </div>
                 <div class="col">
-                    <textarea rows="8" class="form-control disabled"></textarea>
+                    <textarea rows="8" class="form-control" disabled></textarea>
                 </div>
             </div>
         </div>
+        <button class="btn btn-primary">Convert</button>
         <hr>
         <div class="container">
             <h3>Sample</h3>
             <div class="row row-cols-1 row-cols-md-2 mb-2 text-center">
                 <div class="col">
-                    <textarea rows="3" class="form-control disabled" disabled>SELECT * FROM users WHERE age = 6;</textarea>
+                    <textarea rows="3" class="form-control " disabled>SELECT * FROM users WHERE age = 6;</textarea>
                 </div>
                 <div class="col">
-                    <textarea rows="3" class="form-control disabled" disabled>User::where('age',6)->get();</textarea>
+                    <textarea rows="3" class="form-control " disabled>User::where('age',6)->get();</textarea>
                 </div>
             </div>
         </div>
