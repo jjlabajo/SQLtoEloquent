@@ -1,0 +1,4 @@
+1. Use parentheses when using BETWEEN operator. e.g. SELECT * FROM t WHERE (column_name BETWEEN value1 AND value2);
+2. When using ALIAS, always use the AS linking verb. e.g. SELECT uid AS `user_id`;
+3. Always use backticks (`) for aliases.
+
