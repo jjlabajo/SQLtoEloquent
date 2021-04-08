@@ -25,7 +25,7 @@ function convertToEloquent(input, is_subquery = false){
     }
 
 
-    regex = /\(.+? (AND|OR) .+?\)/g
+    regex = /\(.+? (and|or) .+?\)/g
     grouped_condition = input.match(regex)
     if(!Array.isArray(grouped_condition)){
         grouped_condition = []
@@ -34,7 +34,7 @@ function convertToEloquent(input, is_subquery = false){
     x = 1
     for(sub of grouped_condition){
         count = `grouped_condition_${x}`
-        input = input.replace(/\(.+? (AND|OR) .+?\)/g, ` ${count}`)
+        input = input.replace(/\(.+? (and|or) .+?\)/g, ` ${count}`)
         grouped_conditions[count] = grouped_condition;
         x++
     }
@@ -59,8 +59,12 @@ function convertToEloquent(input, is_subquery = false){
     return compose(composition, is_subquery)
 }
 
-function compose(composition, is_subquery){
+function compose(composition, is_subquery = false){
     console.log(composition)
+    prepend = "\n";
+    if(is_subquery){
+        prepend = "\n\t\t"
+    }
     var table = composition.from[0].trim().split(" ")[0] ?? "";
     if(is_subquery){
         var query = `$query`;
@@ -68,9 +72,9 @@ function compose(composition, is_subquery){
         var query = `DB::table("${table}")`
     }
     select = composition.select.filter((x)=>x.trim()!=="").map(function(x){ return `${x.includes("as") ? x.trim() : x.replace(/`/g,"").trim()}` })
-    query += `->selectRaw("${select.join(",")}")`
+    query += `${prepend}->selectRaw("${select.join(",")}")`
     if(is_subquery){
-        query += `->from("${table}")`
+        query += `${prepend}->from("${table}")`
     }
     add_select = []
     if(Array.isArray(composition.subselect)){
@@ -81,9 +85,8 @@ function compose(composition, is_subquery){
             subquery = trimChar(subquery, "(")
             subquery = trimChar(subquery, ")")
             alias = alias.replace(/as|`/g, "").trim()
-            query += `->addSelect(['${alias}' => function ($query) {
-                ${convertToEloquent(subquery, true)}
-            }])`
+            query += `\n->addSelect(['${alias}' => function ($query) {
+                ${convertToEloquent(subquery, true)}\n}])`
         }
     }
     if(Array.isArray(composition.where)){
@@ -92,11 +95,11 @@ function compose(composition, is_subquery){
             condition = condition.replace("in(", "in (")
             var parts = condition.split(" ");
             if(condition.includes(" or ")){
-                if(/\(.+? (AND|OR) .+?\)/g.test(condition)){
+                if(/\(.+? (and|or) .+?\)/g.test(condition)){
                     
                 }
             }else{
-                query += parseCondition(parts)
+                query += prepend+parseCondition(parts, composition)
             }
             break;
         }
@@ -104,7 +107,7 @@ function compose(composition, is_subquery){
     return query
 }
 
-function parseCondition(parts){
+function parseCondition(parts, composition){
     if((parts[1]??"") == "in"){
         var comparison = parts[2] ?? "";
         var value = ""
@@ -114,7 +117,7 @@ function parseCondition(parts){
         subquery = trimChar(subquery, ")")
         if(comparison.includes("sub_query_where_")){
             value = `function ($query) {
-                ${convertToEloquent(subquery, true)}
+                \t\t${convertToEloquent(subquery, true)}
             }`
         }else{
             value = `[${trimChar(trimChar(comparison, ")"),"(")}]`
