@@ -54,13 +54,13 @@
             hljs.highlightAll();
             var input = document.getElementById("input").value
             var result = ""
-            // try {
-                // result = convertToEloquent(input)+"\n->get();"
-            // }
-            // catch(err) {
-            //     console.log(err.message)
-            //     result = "Cannot parse your SQL Statement. Please check your syntax."
-            // }
+            try {
+                result = convertToEloquent(input)+"\n->get();"
+            }
+            catch(err) {
+                console.log(err.message)
+                result = "Cannot parse your SQL Statement. Please check your syntax."
+            }
             result = convertSQL(input)
             document.getElementById("result").innerHTML = result
         }
