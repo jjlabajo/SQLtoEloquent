@@ -67,7 +67,7 @@ function compose(composition, select_raws, select_subqueries_functions, where_su
 
     //select normal columns
     columns = composition.select.split(",").filter((x)=>(!x.trim().includes("select_subquery_function")&&x.trim()!="")).map(function(x){ return `"${x.trim()}"`}).join(", ")
-    if(columns != "*"){
+    if(columns != `"*"`){
         composed.push(`->select(${columns})`)
     }
 

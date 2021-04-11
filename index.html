@@ -55,13 +55,12 @@
             var input = document.getElementById("input").value
             var result = ""
             try {
-                result = convertToEloquent(input)+"\n->get();"
+                result = convertSQL(input)+"\n->get();"
             }
             catch(err) {
                 console.log(err.message)
                 result = "Cannot parse your SQL Statement. Please check your syntax."
             }
-            result = convertSQL(input)
             document.getElementById("result").innerHTML = result
         }
     </script>
