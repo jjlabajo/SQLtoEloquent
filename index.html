@@ -37,14 +37,13 @@
                     <textarea rows="3" class="form-control " disabled>SELECT * FROM users WHERE age IN (18,20)</textarea>
                 </div>
                 <div class="col">
-                    <textarea rows="3" class="form-control " disabled>User::where('age',6)->get();</textarea>
+                    <textarea rows="3" class="form-control " disabled>DB::table('users')->whereIn("age", [18, 20])->get();</textarea>
                 </div>
             </div>
         </div>
     </div>
     <!-- JavaScript Bundle with Popper -->
     <script src="main.js"></script>
-    <script src="index.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js" integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/@highlightjs/cdn-assets@10.6.0/highlight.min.js"></script>
     <script src="https://unpkg.com/@highlightjs/cdn-assets@10.7.1/languages/php.min.js"></script>

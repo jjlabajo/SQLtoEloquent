@@ -53,22 +53,34 @@ function compose(composition, select_raws, select_subqueries_functions, where_su
     var table = ""
     var delimiter = "\n"
 
-    console.log(composition)
+    //get tables
+    tables = composition.from.split(/left join|right join|inner join|full join|cross join|join/);
 
-    //get table name
-    table = composition.from.split(/left join|right join|inner join|full join|join/)[0].trim()
+    //get primary table
+    table = tables[0].trim()
     if(is_subquery){ //if subquery conditions
         composed.push(`$query->from('${table}')`)
         delimiter = "\n\t"
     }else{
         composed.push(`DB::table('${table}')`)
     }
+
+    //table joins
+    var x = 0
+    for(table_clause of tables){
+        if(x == 0){
+            x++;
+            continue
+        }
+        composed.push(join(table_clause, composition.from.trim().match(/left join|right join|inner join|full join|cross join|join/g), x - 1, w))
+        x++
+    }
     
 
     //select normal columns
     columns = composition.select.split(",").filter((x)=>(!x.trim().includes("select_subquery_function")&&x.trim()!="")).map(function(x){ return `"${x.trim()}"`}).join(", ")
     if(columns != `"*"`){
-        composed.push(`->select(${columns})`)
+        composed.push(`->select(${changeGroups(columns, w)})`)
     }
 
     for(column of select_raws){
@@ -103,12 +115,12 @@ function compose(composition, select_raws, select_subqueries_functions, where_su
             composed.push(where(first_condition, w))
         }
 
-        //get all operators AND OR
-        get_all = getAll(/and|or/g, composition.where.replace(first_condition, "").trim())
+        //get all operators AND/OR
+        get_all = getAll(/ and | or /g, composition.where.replace(first_condition, "").trim())
         operators = get_all.matches
 
         //get all conditions
-        conditions = composition.where.trim().split(/and|or/g).map(function(x){return x.trim()})
+        conditions = composition.where.trim().split(/ and | or /g).map(function(x){return x.trim()})
 
         x = 0
         for(condition of conditions){
@@ -155,7 +167,86 @@ function compose(composition, select_raws, select_subqueries_functions, where_su
     return composed.join(delimiter)
 }
 
-function where(value, w, pre = "where"){
+function changeGroups(string, w){
+    regex = /where_subquery_group_(\d+)/g
+    if(regex.test(string)){
+        matches = string.match(regex)
+        if(Array.isArray(matches)){
+            for(match of matches){
+                string = string.replace(match, w[` ${match}`].trim()).trim()
+            }
+        }
+        return `DB::raw(${string})`
+    }
+    return string
+}
+
+function join(table_clause, joins, x, w){
+    if(!Array.isArray(joins)){
+        joins = []
+    }
+
+    joins = joins.map(function(x){return x.trim()})
+
+    if(typeof joins[x] !== 'undefined'){
+        prepend = joins[x].replace(/^(.)|\s+(.)/g, function ($1) {
+            return $1.toUpperCase()
+          })
+        prepend = prepend.replace(/ /g, "")
+        prepend = lowerCaseFirstLetter(prepend)
+        alias = table_clause.split(/on/g)[0].trim()
+        if(prepend == "crossJoin"){
+            regex = /where_subquery_group_(\d+)/g
+            if(regex.test(table_clause)){
+                matches = table_clause.match(regex)
+                if(Array.isArray(matches)){
+                    for(match of matches){
+                        table_clause = table_clause.replace(match, w[` ${match}`].trim()).trim()
+                    }
+                }
+            }
+            return `->${prepend}(DB::raw("${table_clause}"))`
+        }
+        return `->${prepend}("${alias}", function($join){\n\t${joinCondition(table_clause.replace(alias, "").trim(), w)}\n})`
+    }
+    return "";
+}
+
+function joinCondition(condition_string, w){
+    regex = / and | or /g
+    joins = []
+    condition_string = condition_string.replace(/on/g, "")
+
+    first_condition = condition_string.split(regex)[0].trim()
+    if(first_condition != ""){
+        joins.push(conditionOn(first_condition, w))
+    }
+
+    //get all operators AND/OR
+    get_all = getAll(/ and | or /g, condition_string.replace(first_condition, "").trim())
+    operators = get_all.matches
+
+    //get all conditions
+    conditions = condition_string.trim().split(/ and | or /g).map(function(x){return x.trim()})
+
+    x = 0
+    for(condition of conditions){
+        if(x == 0){
+            x++;
+            continue
+        }
+        pre = (operators[x-1] ?? "") == "or" ? "orOn" : "on"
+        try{
+            joins.push(conditionOn(condition, w, pre))
+        }catch(e){
+            console.log(x, conditions)
+        }
+        x++;
+    }
+    return "$join"+joins.join("\n\t")+";"
+}
+
+function conditionOn(value, w, pre = "on"){
     parts = value.split(" ")
     if(typeof parts[1] == 'undefined' && typeof w[` ${parts[0].trim()}`] !== 'undefined'){
         return `->${pre}(DB::raw(${w[` ${parts[0]}`].trim()}))`
@@ -173,6 +264,39 @@ function where(value, w, pre = "where"){
         return `->${pre}In("${parts[0]}", ${last})`
     }
     return `->${pre}("${parts[0]}", "${parts[1]}", ${last})`
+}
+
+function lowerCaseFirstLetter(string) {
+    return string.charAt(0).toLowerCase() + string.slice(1);
+}
+
+
+function where(value, w, pre = "where"){
+    parts = value.split(" ")
+    subject = value.split(" ")[0] ?? ""
+    operator = value.split(" ")[1] ?? ""
+    if(typeof parts[1] == 'undefined' && typeof w[` ${parts[0].trim()}`] !== 'undefined'){
+        return `->${pre}(DB::raw(${w[` ${parts[0]}`].trim()}))`
+    }
+    last = `"${parts[2]}"`
+    if(value.includes("where_subquery_group")){
+        condition = w[` ${parts[2].trim()}`].trim()
+        if(/^(\(select|\( select)/g.test(condition)){
+            last = getSubquery(condition)
+        }else{
+            last = "["+w[` ${parts[2]}`].trim().replace(/^\(/g,"").replace(/\)$/g,"")+"]"
+        }
+    }
+    if(parts[1].trim() == "in"){
+        return `->${pre}In("${parts[0]}", ${last})`
+    }else if(/is null/g.test(value)){
+        return `->${pre}Null("${parts[0]}")`
+    }else if(/is not null/g.test(value)){
+        return `->${pre}NotNull("${parts[0]}")`
+    }
+    console.log(value, parts, `->${pre}("${subject}", "${operator}", ${last})`)
+    return `->${pre}("${subject}", "${operator}", ${last})`
+    
 }
 
 function getSubquery(value){
