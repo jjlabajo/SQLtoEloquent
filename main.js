@@ -59,10 +59,10 @@ function compose(composition, select_raws, select_subqueries_functions, where_su
     //get primary table
     table = tables[0].trim()
     if(is_subquery){ //if subquery conditions
-        composed.push(`$query->from('${table}')`)
+        composed.push(`$query->from("${table}")`)
         delimiter = "\n\t"
     }else{
-        composed.push(`DB::table('${table}')`)
+        composed.push(`DB::table("${table}")`)
     }
 
     //table joins
