@@ -270,7 +270,7 @@ function conditionOn(value, w, pre = "on"){
         return `->${pre}In("${parts[0]}", ${last})`
     }
     if(parts[1].trim() == "is" || parts[1].trim() == "between"){
-        return `->${pre}(DB::raw(${value}))`
+        return `->${pre}(DB::raw("${value}"))`
     }
     return `->${pre}("${parts[0]}", "${parts[1]}", ${last})`
 }
