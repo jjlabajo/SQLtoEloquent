@@ -1,9 +1,0 @@
-get the sql
-remove whitespaces and line breaks
-make all characters lower
-replace (,) to (, )
-replace (  ) to ( )
-get all case when /case when (.+?) end (.+?)`(.+?)`/g
-get all select functions and subqueries /(([a-z]|[a-z]_[a-z])+?| )\(.+?\)( | as)`.+?`/g
-get all where subqueries /(in|=|<|>|<>|<=|>=)( *?\(.+?\))/g
-divide the sql statement using the delimiters SELECT, FROM, ORDER BY, LIMIT

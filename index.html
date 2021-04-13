@@ -7,6 +7,17 @@
     <title>SQL to Eloquent</title>
     <!-- CSS only -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6" crossorigin="anonymous">
+    <style>
+        .g{
+            color: #5BDB5B;
+        }
+        .r{
+            color:#c50f0f;
+        }
+        .b{
+            color:#3FC4DB;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -20,8 +31,8 @@
                     <button onclick="convert()" class="btn btn-primary">Convert</button>
                 </div>
                 <div class="col">
-                    <div class="highlight">
-                        <pre><code class=""><textarea spellcheck="false" id="result" class="form-control hljs php language-php" rows="10" style="color:white;background-color: black;"></textarea></code></pre>
+                    <div class="highlight" style="color:violet;background-color: black;padding: 3vh;">
+                        <pre ><code id="result"></code></pre>
                     </div>
                 </div>
                 
@@ -49,12 +60,16 @@
             var result = ""
             try {
                 result = convertSQL(input)+"\n->get();"
+                var string = result.trim()
+                string = markUp(string)
+                var get = "get</span><span style='color:gray'>(</span><span style='color:gray'>)</span><span style='color:gray'>;</span>"
+                document.getElementById("result").innerHTML = string.split(get)[0] + get
             }
             catch(err) {
                 console.log(err.message)
-                result = "Cannot parse your SQL Statement. Please check your syntax."
+                result = "Cannot parse your SQL Statement. Please check your syntax. \nPlease note, only SELECT statements are considered valid syntax."
+                document.getElementById("result").innerHTML = result
             }
-            document.getElementById("result").innerHTML = result
         }
     </script>
 </body>
