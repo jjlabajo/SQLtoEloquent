@@ -78,6 +78,17 @@
                 <li>Always use backticks ( <code>`</code> ) for aliases.</li>
             </ol>
         </div>
+        
+        <div class="container">
+            Few unsupported features: <br>
+            <ol>
+                <li> <code>whereBetween</code> and <code>orWhereBetween</code>, it will currently be read as <code>->where(DB::raw("age BETWEEN 18 AND 29"))</code>. Currently working on it.</li>
+                <li> <b>WITH</b> operator.</li>
+                <li> Some subqueries that has complex syntax will be wrapped in <code>DB::raw</code>.</li>
+                <li> Doesn't support shorten alias e.g. <code>SELECT first_name `First name`, last_name `Last name`</code>, only support aliases with <b>AS</b> wildcard. See Rule #2.</li>
+            </ol>
+            <small>Some unsupported features may not be listed here.</small>
+        </div>
     </div>
     <!-- JavaScript Bundle with Popper -->
     <script src="main.js"></script>
