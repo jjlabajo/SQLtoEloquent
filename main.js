@@ -1,6 +1,7 @@
 function convert(){
     var input = document.getElementById("input").value
     var result = ""
+    var error_message = "Cannot parse your SQL Statement. Please check your syntax. \nPlease note, only SELECT statements are considered valid syntax.\n\nRules: \n1. Use parentheses when using BETWEEN operator. \n\te.g. \n\tSELECT * FROM t WHERE (column_name BETWEEN value1 AND value2);\n2. When using ALIAS, always use the AS linking verb. \n\te.g. \n\tSELECT uid AS `user_id`;\n3. Always use backticks (`) for aliases."
     try {
         result = convertSQL(input)+"\n->get();"
         var string = result.trim()
@@ -8,13 +9,15 @@ function convert(){
         var get = "get</span><span style='color:gray'>(</span><span style='color:gray'>)</span><span style='color:gray'>;</span>"
         document.getElementById("result").innerHTML = string.split(get)[0] + get
     }
-    catch(err) {
-        console.log(err.message)
-        result = "Cannot parse your SQL Statement. Please check your syntax. \nPlease note, only SELECT statements are considered valid syntax."
-        document.getElementById("result").innerHTML = result
+    catch(e) {
+        console.log(e.message)
+        document.getElementById("result").innerHTML = error_message
     }
 }
 function convertSQL(input, is_subquery = false){
+    if(!input.toLowerCase().includes("select") || !input.toLowerCase().includes("from")){
+        throw "Syntax Error";
+    }
     if(!window.location.href.includes("jjlabajo")){
         throw "error";
     }
@@ -98,9 +101,9 @@ function compose(composition, select_raws, select_subqueries_functions, where_su
     
 
     //select normal columns
-    var columns = composition.select.split(",").filter((x)=>(!x.trim().includes("select_subquery_function")&&x.trim()!="")).map(function(x){ return `"${x.trim()}"`}).join(", ")
+    var columns = composition.select.split(",").filter((x)=>(!x.trim().includes("select_subquery_function")&&x.trim()!="")).map(function(x){ return `${x.trim()}`}).join(", ")
     if(columns != `"*"`){
-        composed.push(`->addSelect(DB::raw(${changeGroups(columns, w)}))`)
+        composed.push(`->addSelect(DB::raw("${changeGroups(columns, w)}"))`)
     }
 
     for(column of select_raws){
@@ -118,7 +121,7 @@ function compose(composition, select_raws, select_subqueries_functions, where_su
                 if(/^\(.+?/g.test(value)){ //subqueries
                     alias = getAlias(value)
                     if(alias != ""){
-                        composed.push(`->addSelect(['${alias}' => ${getSubquery(value)}])`)    
+                        composed.push(`->addSelect(["${alias}" => ${getSubquery(value)}])`)    
                     }    
                 }else{ //functions
                     composed.push(`->addSelect(DB::raw("${value}"))`)
@@ -196,7 +199,9 @@ function changeGroups(string, w){
         matches = string.match(regex)
         if(Array.isArray(matches)){
             for(match of matches){
-                string = string.replace(match, w[` ${match}`].trim()).trim()
+                if(typeof w[` ${match}`] !== 'undefined'){
+                    string = string.replace(match, w[` ${match}`].trim()).trim()
+                }
             }
         }
     }
