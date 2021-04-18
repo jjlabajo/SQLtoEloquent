@@ -2,25 +2,25 @@ function convert(){
     var input = document.getElementById("input").value
     var result = ""
     var error_message = "Cannot parse your SQL Statement. Please check your syntax. \nPlease note, only SELECT statements are considered valid syntax.\n\nRules: \n1. Use parentheses when using BETWEEN operator. \n\te.g. \n\tSELECT * FROM t WHERE (column_name BETWEEN value1 AND value2);\n2. When using ALIAS, always use the AS linking verb. \n\te.g. \n\tSELECT uid AS `user_id`;\n3. Always use backticks (`) for aliases."
-    // try {
+    try {
         result = convertSQL(input)+"\n->get();"
         var string = result.trim()
         string = markUp(string)
         var get = "get</span><span style='color:gray'>(</span><span style='color:gray'>)</span><span style='color:gray'>;</span>"
         document.getElementById("result").innerHTML = string.split(get)[0] + get
-    // }
-    // catch(e) {
-    //     console.log(e.message)
-    //     document.getElementById("result").innerHTML = error_message
-    // }
+    }
+    catch(e) {
+        console.log(e.message)
+        document.getElementById("result").innerHTML = error_message
+    }
 }
 function convertSQL(input, is_subquery = false){
     if(!input.toLowerCase().includes("select") || !input.toLowerCase().includes("from")){
         throw "Syntax Error";
     }
-    // if(!window.location.href.includes("jjlabajo")){
-    //     throw "error";
-    // }
+    if(!window.location.href.includes("jjlabajo")){
+        throw "error";
+    }
     input = input.toLowerCase().trim();
     input = input.replace(/;/g,"");
     input = input.replace(/"/g,"'");
