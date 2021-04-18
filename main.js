@@ -100,7 +100,7 @@ function compose(composition, select_raws, select_subqueries_functions, where_su
     //select normal columns
     var columns = composition.select.split(",").filter((x)=>(!x.trim().includes("select_subquery_function")&&x.trim()!="")).map(function(x){ return `"${x.trim()}"`}).join(", ")
     if(columns != `"*"`){
-        composed.push(`->select(${changeGroups(columns, w)})`)
+        composed.push(`->addSelect(DB::raw(${changeGroups(columns, w)}))`)
     }
 
     for(column of select_raws){
@@ -199,7 +199,6 @@ function changeGroups(string, w){
                 string = string.replace(match, w[` ${match}`].trim()).trim()
             }
         }
-        return `DB::raw(${string})`
     }
     return string
 }
@@ -260,12 +259,22 @@ function joinCondition(condition_string, w){
             x++;
             continue
         }
-        pre = (operators[x-1] || "") == "or" ? "orOn" : "on"
-        try{
-            joins.push(conditionOn(condition, w, pre))
-        }catch(e){
-            console.log(x, conditions)
+        if(x == 1){
+            pre = (operators[x-1] || "") == "or" ? "orOn" : "on"
+            try{
+                joins.push(conditionOn(condition, w, pre))
+            }catch(e){
+                console.log(x, conditions)
+            }
+        }else{
+            pre = (operators[x-1] || "") == "or" ? "orWhere" : "where"
+            try{
+                joins.push(where(condition, w, pre))
+            }catch(e){
+                console.log(x, conditions)
+            }
         }
+        
         x++;
     }
     return "$join"+joins.join("\n\t")+";"
