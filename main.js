@@ -265,6 +265,7 @@ function joinCondition(condition_string, w){
                 joins.push(conditionOn(condition, w, pre))
             }catch(e){
                 console.log(x, conditions)
+                joins.push(`->${pre}(DB::raw("${condition}"))`)
             }
         }else{
             pre = (operators[x-1] || "") == "or" ? "orWhere" : "where"
@@ -272,6 +273,7 @@ function joinCondition(condition_string, w){
                 joins.push(where(condition, w, pre))
             }catch(e){
                 console.log(x, conditions)
+                joins.push(`->${pre}(DB::raw("${condition}"))`)
             }
         }
         
