@@ -1,1 +1,493 @@
-function convert(){var e=document.getElementById("input").value;try{var r=(convertSQL(e)+"\n->get();").trim();r=markUp(r);var t="get</span><span style='color:gray'>(</span><span style='color:gray'>)</span><span style='color:gray'>;</span>";document.getElementById("result").innerHTML=r.split(t)[0]+t}catch(e){console.log(e.message),document.getElementById("result").innerHTML="Cannot parse your SQL Statement. Please check your syntax. \nPlease note, only SELECT statements are considered valid syntax.\n\nRules: \n1. Use parentheses when using BETWEEN operator. \n\te.g. \n\tSELECT * FROM t WHERE (column_name BETWEEN value1 AND value2);\n2. When using ALIAS, always use the AS linking verb. \n\te.g. \n\tSELECT uid AS `user_id`;\n3. Always use backticks (`) for aliases."}}function getEnders(e){var r=[],t=/(limit (\d+), (\d+)|limit (\d+) offset (\d+)|limit (\d+))/gi,n=getAll(t,e=e.toLowerCase().trim()),i=n.matches;return i.length>0&&(r.push(getLimit(i[0].replace(/limit/g,"").trim())),e=n.input),(i=(n=getAll(t=/(order by (.+) ((asc|desc))?)/gi,e)).matches).length>0&&(r.push(`->orderBy(${i[0].replace(/order by/g,"").trim().split(" ").map(function(e){return`"${e}"`}).join(",")})`),e=n.input),(i=(n=getAll(t=/((group by (\w\.\w+))|(group by (\w+)))/gi,e)).matches).length>0&&(r.push(`->groupBy(${i[0].replace(/group by/g,"").trim().split(" ").map(function(e){return`"${e}"`}).join(",")})`),e=n.input),{input:e,strings:r}}function getLimit(e){return string="",/offset|,/g.test(e)?(parts=e.split(/offset|,/g),/offset/g.test(e)?(void 0!==parts[1]&&(string+=`->offset(${(parts[1]||"").trim()})`),string+=`->limit(${parts[0].trim()})`):(string+=`->offset(${parts[0].trim()})`,void 0!==parts[1]&&(string+=`->limit(${(parts[1]||"").trim()})`))):string+=`->limit(${e})`,string}function convertSQL(e,r=!1){if(!e.toLowerCase().includes("select")||!e.toLowerCase().includes("from"))throw"Syntax Error";if(!window.location.href.includes("jjlabajo"))throw"error";var t=(e=(e=(e=(e=(e=(e=(e=(e=(e=(e=(e=e.toLowerCase().trim()).replace(/;/g,"")).replace(/"/g,"'")).replace(/=/g," = ")).replace(/< =/g," <= ")).replace(/> =/g," >= ")).replace(/! =/g," != ")).replace(/,/g,", ")).replace(/in\(/g,"in (")).replace(/(\r\n|\n|\r)/gm," ")).replace(/\s+/gm," ")).split(/ union /g),n="",i="";void 0!==t[1]&&(n="$table = "+convertSQL(t[1])+";\n\n",i="\n->union($table)"),e=t[0],r&&(e=e.trim().replace(/^\(/g,"").replace(/\)$/g,""));var s=getAll(/case when (.+?) end (.+?)`(.+?)`/g,e);select_raws=s.matches,e=(s=getAll(/(([a-z]|[a-z]_[a-z])+?| )\(.+?\)( | as)`.+?`/g,e=s.input,"select_subquery_function")).input,select_subqueries_functions=s.result,e=(s=getAll(/( *?\(.+?\))/g,e,"where_subquery_group")).input,where_subqueries_groups=s.result;var o=getEnders(e=e.replace(/\s+/gm," ")),a=(e=o.input).split(/select | from | where | order by | limit /),l={select:a[1]||"",from:a[2]||"",where:a[3]||"",order_by:a[4]||"",limit:a[5]||""};return output_string=compose(l,select_raws,select_subqueries_functions,where_subqueries_groups,r),semicolon="",r&&(semicolon=";"),delimiter="",o.strings.length>0&&(delimiter="\n"),`${n}${output_string}${delimiter}${i}${o.strings.join("\n")}${semicolon}`}function compose(e,r,t,n,i){var s,o=n,a=[],l="\n",c=e.from.split(/left join|right join|inner join|full join|cross join|join/);s=c[0].trim(),i?(a.push(`$query->from("${s}")`),l="\n\t"):a.push(`DB::table("${s}")`);var u=0;for(table_clause of c)0!=u?(a.push(join(table_clause,e.from.trim().match(/left join|right join|inner join|full join|cross join|join/g),u-1,o)),u++):u++;var p=e.select.split(",").filter(e=>!e.trim().includes("select_subquery_function")&&""!=e.trim()).map(function(e){return`"${e.trim()}"`}).join(", ");for(column of('"*"'!=p&&a.push(`->select(${changeGroups(p,o)})`),r))column=column.trim(),a.push(`->addSelect(DB::raw("${column}"))`);for(column of e.select.split(","))column=column.trim(),column.includes("select_subquery_function")&&(value=t[` ${column}`]||"",value=value.trim(),""!=value&&(/^\(.+?/g.test(value)?(alias=getAlias(value),""!=alias&&a.push(`->addSelect(["${alias}" => ${getSubquery(value)}])`)):a.push(`->addSelect(DB::raw("${value}"))`)));if(""!=e.where.trim())for(condition of(first_condition=e.where.split(/ and | or /)[0].trim(),""!=first_condition&&a.push(where(first_condition,o)),get_all=getAll(/ and | or /g,e.where.replace(first_condition,"").trim()),operators=get_all.matches,conditions=e.where.trim().split(/ and | or /g).map(function(e){return e.trim()}),u=0,conditions))if(0!=u){pre="or"==(operators[u-1]||"")?"orWhere":"where";try{a.push(where(condition,o,pre))}catch(e){console.log(u,conditions)}u++}else u++;return a.join(l)}function changeGroups(e,r){var t=/where_subquery_group_(\d+)_/g;if(t.test(e)&&(matches=e.match(t),Array.isArray(matches)))for(match of matches)void 0!==r[` ${match}`]&&(e=e.replace(match,r[` ${match}`].trim()).trim());return e}function join(e,r,t,n){if(Array.isArray(r)||(r=[]),void 0!==(r=r.map(function(e){return e.trim()}))[t]){var i=r[t].replace(/^(.)|\s+(.)/g,function(e){return e.toUpperCase()});i=lowerCaseFirstLetter(i=i.replace(/ /g,""));var s=e.split(/on/g)[0].trim();if("crossJoin"==i){if(regex=/where_subquery_group_(\d+)/g,regex.test(e)&&(matches=e.match(regex),Array.isArray(matches)))for(match of matches)void 0!==n[` ${match}`]&&(e=e.replace(match,n[` ${match}`].trim()).trim());return`->${i}(DB::raw("${e}"))`}return`->${i}("${s}", function($join){\n\t${joinCondition(e.replace(s,"").trim(),n)}\n})`}return""}function joinCondition(e,r){var t=[],n=(e=e.replace(/on/g,"")).split(/ and | or /g)[0].trim();""!=n&&t.push(conditionOn(n,r));var i=getAll(/ and | or /g,e.replace(n,"").trim());operators=i.matches;var s=e.trim().split(/ and | or /g).map(function(e){return e.trim()});for(condition of(x=0,s))if(0!=x){pre="or"==(operators[x-1]||"")?"orWhere":"where";try{t.push(where(condition,r,pre))}catch(e){console.log(x,s),t.push(`->${pre}(DB::raw("${condition}"))`)}x++}else x++;return"$join"+t.join("\n\t")+";"}function conditionOn(e,r,t="on"){var n=e.split(" ");return void 0===n[1]&&void 0!==r[` ${n[0].trim()}`]?`->${t}(DB::raw("${r[` ${n[0]}`].trim()}"))`:void 0===n[1]?`->${t}(DB::raw("${e.trim()}"))`:(last=`"${n[2].trim()}"`,(n[2].trim().startsWith("'")&&n[2].trim().endsWith("'")||n[2].trim().startsWith('"')&&n[2].trim().endsWith('"'))&&(last=n[2].trim()),e.includes("where_subquery_group")&&(condition=r[` ${n[2].trim()}`].trim(),/^(\(select|\( select)/g.test(condition)?last=getSubquery(condition):last="["+r[` ${n[2]}`].trim().replace(/^\(/g,"").replace(/\)$/g,"")+"]"),"in"==n[1].trim()?`->${t}In("${n[0]}", ${last})`:"is"==n[1].trim()||"between"==n[1].trim()?`->${t}(DB::raw("${e}"))`:`->${t}("${n[0]}", "${n[1]}", ${last})`)}function lowerCaseFirstLetter(e){return e.charAt(0).toLowerCase()+e.slice(1)}function where(e,r,t="where"){var n=e.split(" "),i=e,s=`"${i.split(" ")[0]||""}", "${i.split(" ")[1]||""}"`;return void 0===n[1]&&void 0!==r[` ${n[0].trim()}`]?`->${t}(DB::raw("${r[` ${n[0]}`].trim()}"))`:void 0===n[1]?(console.log(n),`->${t}(DB::raw("${e.trim()}"))`):(last=`"${n[2]}"`,e.includes("where_subquery_group")&&(condition=r[` ${n[2].trim()}`].trim(),/^(\(select|\( select)/g.test(condition)?last=getSubquery(condition):last="["+r[` ${n[2]}`].trim().replace(/^\(/g,"").replace(/\)$/g,"")+"]"),"in"==n[1].trim()?`->${t}In("${n[0]}", ${last})`:/is null/g.test(e)?`->${t}Null("${n[0]}")`:/is not null/g.test(e)?`->${t}NotNull("${n[0]}")`:`->${t}(${s}, ${last})`)}function getSubquery(e){return`function($query){\n\t${convertSQL(e=e.replace(/`(.+?)`$/g,""),!0)}\n}`}function getAlias(e){var r=(e=e.trim()).match(/`.+?`$/g);return Array.isArray(r)||(r=[]),(r[0]||"").replace(/`/g,"").trim()}function getAll(e,r,t=""){var n={},i=r.match(e);Array.isArray(i)||(i=[]);var s=1;for(match of i)replace=` ${t}_${s}_`,""==t&&(replace=""),r=r.replace(match,replace),n[replace]=match,s++;return{result:n,input:r,matches:i}}function markUp(e){var r=e.match(/"(.+?)"/g);Array.isArray(r)||(r=[]);var t={},n=1;for(string of r)key=`quoted_string_${n}_`,t[key]=string,e=e.replace(string,key),n++;for(key in e=(e=(e=(e=(e=(e=e.replace(/(>|::|:)(\D+?)(\()/g,"$1<span class='g'>$2</span>$3")).replace(/(::|->)/g,"<span class='r'>$1</span>")).replace(/(function)/g,"<i class='b'>$1</i>")).replace(/(DB)/g,"<span class='b'>$1</span>")).replace(/(\(|\)|"|,|\[|\]|;|\{|\})/g,"<span style='color:gray'>$1</span>")).replace(/(\$[a-z]+)/g,"<span style='color:white'>$1</span>"),t){string=t[key];var i=new RegExp(key,"g");e=e.replace(i,`<span style='color:#FFFCB2;'>${string}</span>`)}return e}
+function convert(){
+    var input = document.getElementById("input").value
+    var result = ""
+    var error_message = "Cannot parse your SQL Statement. Please check your syntax. \nPlease note, only SELECT statements are considered valid syntax.\n\nRules: \n1. Use parentheses when using BETWEEN operator. \n\te.g. \n\tSELECT * FROM t WHERE (column_name BETWEEN value1 AND value2);\n2. When using ALIAS, always use the AS linking verb. \n\te.g. \n\tSELECT uid AS `user_id`;\n3. Always use backticks (`) for aliases."
+    try {
+        result = convertSQL(input)+"\n->get();"
+        var string = result.trim()
+        string = markUp(string)
+        var get = "get</span><span style='color:gray'>(</span><span style='color:gray'>)</span><span style='color:gray'>;</span>"
+        document.getElementById("result").innerHTML = string.split(get)[0] + get
+    }
+    catch(e) {
+        console.log(e.message)
+        document.getElementById("result").innerHTML = error_message
+    }
+}
+
+function getEnders(input){ //here
+    input = input.toLowerCase().trim();
+    var end_strings = []
+
+    //limit offset
+    var regex = /(limit (\d+), (\d+)|limit (\d+) offset (\d+)|limit (\d+))/gi
+
+    var get_all = getAll(regex, input);
+
+    var matches = get_all.matches;
+
+    if(matches.length > 0){
+        end_strings.push(getLimit(matches[0].replace(/limit/g,"").trim()))
+        input = get_all.input
+    }
+    
+    //order by
+    regex = /(order by (.+) ((asc|desc))?)/gi
+
+    get_all = getAll(regex, input);
+
+    matches = get_all.matches;
+
+    if(matches.length > 0){
+        end_strings.push(`->orderBy(${matches[0].replace(/order by/g,"").trim().split(" ").map(function(x){ return `"${x}"`}).join(",")})`)
+        input = get_all.input
+    }
+    
+    //group by
+    regex = /((group by (\w\.\w+))|(group by (\w+)))/gi
+
+    get_all = getAll(regex, input);
+
+    matches = get_all.matches;
+
+    if(matches.length > 0){
+        end_strings.push(`->groupBy(${matches[0].replace(/group by/g,"").trim().split(" ").map(function(x){ return `"${x}"`}).join(",")})`)
+        input = get_all.input
+    }
+
+    return {
+        input : input,
+        strings : end_strings
+    }
+}
+
+function getLimit(limit){
+    string = ""
+    if(/offset|,/g.test(limit)){
+        parts = limit.split(/offset|,/g)
+        if(/offset/g.test(limit)){
+            if(typeof parts[1] !== "undefined"){
+                string += `->offset(${(parts[1] || "").trim()})`
+            }
+            string += `->limit(${parts[0].trim()})`
+        }else{
+            string += `->offset(${parts[0].trim()})`
+            if(typeof parts[1] !== "undefined"){
+                string += `->limit(${(parts[1] || "").trim()})`
+            }
+        }
+    }else{
+        string += `->limit(${limit})`
+    }
+    return string
+}
+
+function convertSQL(input, is_subquery = false){
+    if(!input.toLowerCase().includes("select") || !input.toLowerCase().includes("from")){
+        throw "Syntax Error";
+    }
+    if(!window.location.href.includes("jjlabajo")){
+        throw "error";
+    }
+
+    input = input.toLowerCase().trim();
+    input = input.replace(/;/g,"");
+    input = input.replace(/"/g,"'");
+    input = input.replace(/=/g," = ");
+    input = input.replace(/< =/g," <= ");
+    input = input.replace(/> =/g," >= ");
+    input = input.replace(/! =/g," != ");
+    input = input.replace(/,/g,", ");
+    input = input.replace(/in\(/g,"in (");
+    input = input.replace(/(\r\n|\n|\r)/gm, " ");
+    input = input.replace(/\s+/gm, " ");
+
+    //check for union
+    var union = input.split(/ union /g)
+    var union_string = "";
+    var union_compose = "";
+
+    if(typeof union[1] !== 'undefined'){
+        union_string = "$table = "+convertSQL(union[1])+";\n\n";
+        union_compose = `\n->union($table)`;
+    }
+
+    input = union[0]
+
+    if(is_subquery){ //if subquery remove trailing parentheses
+        input = input.trim().replace(/^\(/g,"").replace(/\)$/g,"")
+    }
+
+    //get all case when as selectRaw
+    var get_all = getAll(/case when (.+?) end (.+?)`(.+?)`/g, input)
+    select_raws = get_all.matches
+    input = get_all.input
+
+    //get all subqueries and functions on select
+    get_all = getAll(/(([a-z]|[a-z]_[a-z])+?| )\(.+?\)( | as)`.+?`/g, input, "select_subquery_function")
+    input = get_all.input
+    select_subqueries_functions = get_all.result
+
+    //get all subqueries and grouped clauses on where
+    get_all = getAll(/( *?\(.+?\))/g, input, "where_subquery_group")
+    input = get_all.input
+    where_subqueries_groups = get_all.result
+
+    //clean whitespaces again
+    input = input.replace(/\s+/gm, " ");
+
+    var enders = getEnders(input)
+
+    input = enders.input
+
+    //divide the sql statement using the wildcards
+    var parts = input.split(/select | from | where | order by | limit /)
+
+    var composition = {
+        select : parts[1] || "",
+        from : parts[2] || "",
+        where : parts[3] || "",
+        order_by : parts[4] || "",
+        limit : parts[5] || ""
+    }
+
+    output_string = compose(composition, select_raws, select_subqueries_functions, where_subqueries_groups, is_subquery)
+
+    semicolon = ""
+    if(is_subquery){
+        semicolon = ";"
+    }
+    delimiter = ""
+    if(enders.strings.length > 0){
+        delimiter = "\n"
+    }
+    return `${union_string}${output_string}${delimiter}${union_compose}${enders.strings.join("\n")}${semicolon}`
+
+}
+
+function compose(composition, select_raws, select_subqueries_functions, where_subqueries_groups, is_subquery){
+    var w = where_subqueries_groups
+    var composed = [] //init
+
+    var table = ""
+    var delimiter = "\n"
+
+    //get tables
+    var tables = composition.from.split(/left join|right join|inner join|full join|cross join|join/);
+
+    //get primary table
+    table = tables[0].trim()
+    if(is_subquery){ //if subquery conditions
+        composed.push(`$query->from("${table}")`)
+        delimiter = "\n\t"
+    }else{
+        composed.push(`DB::table("${table}")`)
+    }
+
+    //table joins
+    var x = 0
+    for(table_clause of tables){
+        if(x == 0){
+            x++;
+            continue
+        }
+        composed.push(join(table_clause, composition.from.trim().match(/left join|right join|inner join|full join|cross join|join/g), x - 1, w))
+        x++
+    }
+    
+
+    //select normal columns
+    var columns = composition.select.split(",").filter((x)=>(!x.trim().includes("select_subquery_function")&&x.trim()!="")).map(function(x){ return `"${x.trim()}"`}).join(", ")
+    if(columns != `"*"`){
+        composed.push(`->select(${changeGroups(columns, w)})`)
+    }
+
+    for(column of select_raws){
+        column = column.trim()
+        composed.push(`->addSelect(DB::raw("${column}"))`)
+    }
+
+    //get selected columns
+    for(column of composition.select.split(",")){
+        column = column.trim()
+        if(column.includes("select_subquery_function")){
+            value = select_subqueries_functions[` ${column}`] || ""
+            value = value.trim()
+            if(value != ""){
+                if(/^\(.+?/g.test(value)){ //subqueries
+                    alias = getAlias(value)
+                    if(alias != ""){
+                        composed.push(`->addSelect(["${alias}" => ${getSubquery(value)}])`)    
+                    }    
+                }else{ //functions
+                    composed.push(`->addSelect(DB::raw("${value}"))`)
+                }
+            }
+        }
+    }
+
+    //only do where if there's a where clause
+    if(composition.where.trim() != ""){
+        //get where
+        first_condition = composition.where.split(/ and | or /)[0].trim()
+        if(first_condition != ""){
+            composed.push(where(first_condition, w))
+        }
+
+        //get all operators AND/OR
+        get_all = getAll(/ and | or /g, composition.where.replace(first_condition, "").trim())
+        operators = get_all.matches
+
+        //get all conditions
+        conditions = composition.where.trim().split(/ and | or /g).map(function(x){return x.trim()})
+
+        x = 0
+        for(condition of conditions){
+            if(x == 0){
+                x++;
+                continue
+            }
+            pre = (operators[x-1] || "") == "or" ? "orWhere" : "where"
+            try{
+                composed.push(where(condition, w, pre))
+            }catch(e){
+                console.log(x, conditions)
+            }
+            x++;
+        }
+    }
+
+    return composed.join(delimiter)
+}
+
+function changeGroups(string, w){
+    var regex = /where_subquery_group_(\d+)_/g
+    if(regex.test(string)){
+        matches = string.match(regex)
+        if(Array.isArray(matches)){
+            for(match of matches){
+                if(typeof w[` ${match}`] !== 'undefined'){
+                    string = string.replace(match, w[` ${match}`].trim()).trim()
+                }
+            }
+        }
+    }
+    return string
+}
+
+function join(table_clause, joins, x, w){
+    if(!Array.isArray(joins)){
+        joins = []
+    }
+
+    joins = joins.map(function(x){return x.trim()})
+
+    if(typeof joins[x] !== 'undefined'){
+        var prepend = joins[x].replace(/^(.)|\s+(.)/g, function ($1) {
+            return $1.toUpperCase()
+          })
+        prepend = prepend.replace(/ /g, "")
+        prepend = lowerCaseFirstLetter(prepend)
+        var alias = table_clause.split(/on/g)[0].trim()
+        if(prepend == "crossJoin"){
+            regex = /where_subquery_group_(\d+)/g
+            if(regex.test(table_clause)){
+                matches = table_clause.match(regex)
+                if(Array.isArray(matches)){
+                    for(match of matches){
+                        if(typeof w[` ${match}`] !== 'undefined'){
+                            table_clause = table_clause.replace(match, w[` ${match}`].trim()).trim()
+                        }
+                    }
+                }
+            }
+            return `->${prepend}(DB::raw("${table_clause}"))`
+        }
+        return `->${prepend}("${alias}", function($join){\n\t${joinCondition(table_clause.replace(alias, "").trim(), w)}\n})`
+    }
+    return "";
+}
+
+function joinCondition(condition_string, w){
+    var regex = / and | or /g
+    var joins = []
+    condition_string = condition_string.replace(/on/g, "")
+
+    var first_condition = condition_string.split(regex)[0].trim()
+    if(first_condition != ""){
+        joins.push(conditionOn(first_condition, w))
+    }
+
+    //get all operators AND/OR
+    var get_all = getAll(/ and | or /g, condition_string.replace(first_condition, "").trim())
+    operators = get_all.matches
+
+    //get all conditions
+    var conditions = condition_string.trim().split(/ and | or /g).map(function(x){return x.trim()})
+
+    x = 0
+    for(condition of conditions){
+        if(x == 0){
+            x++;
+            continue
+        }
+        pre = (operators[x-1] || "") == "or" ? "orWhere" : "where"
+        try{
+            joins.push(where(condition, w, pre))
+        }catch(e){
+            console.log(x, conditions)
+            joins.push(`->${pre}(DB::raw("${condition}"))`)
+        }
+        x++;
+    }
+    return "$join"+joins.join("\n\t")+";"
+}
+
+function conditionOn(value, w, pre = "on"){
+    var parts = value.split(" ")
+    if((typeof parts[1] == 'undefined' && typeof w[` ${parts[0].trim()}`] !== 'undefined')){
+        return `->${pre}(DB::raw("${w[` ${parts[0]}`].trim()}"))`
+    }else if(typeof parts[1] == 'undefined'){
+        return `->${pre}(DB::raw("${value.trim()}"))`
+    }
+    last = `"${parts[2].trim()}"`
+    if((parts[2].trim().startsWith(`'`) && parts[2].trim().endsWith(`'`))||(parts[2].trim().startsWith(`"`) && parts[2].trim().endsWith(`"`))){
+        last = parts[2].trim()
+    }
+    if(value.includes("where_subquery_group")){
+        condition = w[` ${parts[2].trim()}`].trim()
+        if(/^(\(select|\( select)/g.test(condition)){
+            last = getSubquery(condition)
+        }else{
+            last = "["+w[` ${parts[2]}`].trim().replace(/^\(/g,"").replace(/\)$/g,"")+"]"
+        }
+    }
+    if(parts[1].trim() == "in"){
+        return `->${pre}In("${parts[0]}", ${last})`
+    }
+    if(parts[1].trim() == "is" || parts[1].trim() == "between"){
+        return `->${pre}(DB::raw("${value}"))`
+    }
+    return `->${pre}("${parts[0]}", "${parts[1]}", ${last})`
+}
+
+function lowerCaseFirstLetter(string) {
+    return string.charAt(0).toLowerCase() + string.slice(1);
+}
+
+
+function where(value, w, pre = "where"){
+    var parts = value.split(" ")
+    var string = value
+    var subject = string.split(" ")[0] || ""
+    var operator = string.split(" ")[1] || ""
+    var subject_operator = `"${subject}", "${operator}"`;
+    if(typeof parts[1] == 'undefined' && typeof w[` ${parts[0].trim()}`] !== 'undefined'){
+        return `->${pre}(DB::raw("${w[` ${parts[0]}`].trim()}"))`
+    }else if(typeof parts[1] == 'undefined'){
+        console.log(parts)
+        return `->${pre}(DB::raw("${value.trim()}"))`
+    }
+    last = `"${parts[2]}"`
+    if(value.includes("where_subquery_group")){
+        condition = w[` ${parts[2].trim()}`].trim()
+        if(/^(\(select|\( select)/g.test(condition)){
+            last = getSubquery(condition)
+        }else{
+            last = "["+w[` ${parts[2]}`].trim().replace(/^\(/g,"").replace(/\)$/g,"")+"]"
+        }
+    }
+    if(parts[1].trim() == "in"){
+        return `->${pre}In("${parts[0]}", ${last})`
+    }else if(/is null/g.test(value)){
+        return `->${pre}Null("${parts[0]}")`
+    }else if(/is not null/g.test(value)){
+        return `->${pre}NotNull("${parts[0]}")`
+    }
+    // else if(/between /g.test(value)){
+    //     return `->${pre}Between("${parts[0]}", [${parts[2] || ""}, ${parts[4] || ""}])`
+    // }
+    // console.log(value, parts, `->${pre}("${subject}", "${operator}", ${last})`)
+    return `->${pre}(${subject_operator}, ${last.trim().replace(/^"|"$/g, '').replace(/^'|'$/g, '')})`
+    
+}
+
+function getSubquery(value){
+    value = value.replace(/`(.+?)`$/g, "")
+    return `function($query){\n\t${convertSQL(value, true)}\n}`
+}
+
+function getAlias(value){
+    var regex = /`.+?`$/g
+    value = value.trim()
+    var matches = value.match(regex)
+
+    if(!Array.isArray(matches)){
+        matches = []
+    }
+
+    var alias = matches[0] || ""
+    return alias.replace(/`/g, "").trim()
+}
+
+function getAll(regex, input, alias = ""){
+    var result = {}
+    var matches = input.match(regex)
+
+    if(!Array.isArray(matches)){
+        matches = []
+    }
+
+    var x = 1
+    for(match of matches){
+        replace = ` ${alias}_${x}_`
+        if(alias == ""){
+            replace = ""
+        }
+        input = input.replace(match, replace)
+        result[replace] = match;
+        x++
+    }
+    return {
+        result : result,
+        input : input,
+        matches : matches
+    }
+}
+
+
+function markUp(value){
+    var regex = /"(.+?)"/g
+    var strings = value.match(regex)
+    if(!Array.isArray(strings)){
+        strings = []
+    }
+
+    var quoted_strings = {};
+    var label = "quoted_string";
+    var x = 1;
+    for(string of strings){
+        key = `${label}_${x}_`
+        quoted_strings[key] = string
+        value = value.replace(string, key)
+        x++
+    }
+    
+    // return value
+    //safe zone
+
+    value = value.replace(/(>|::|:)(\D+?)(\()/g, "$1<span class='g'>$2</span>$3")
+    value = value.replace(/(::|->)/g, "<span class='r'>$1</span>")
+    value = value.replace(/(function)/g, "<i class='b'>$1</i>")
+    value = value.replace(/(DB)/g, "<span class='b'>$1</span>")
+    value = value.replace(/(\(|\)|"|,|\[|\]|;|\{|\})/g, "<span style='color:gray'>$1</span>")
+    value = value.replace(/(\$[a-z]+)/g, "<span style='color:white'>$1</span>")
+
+    for(key in quoted_strings){
+        string = quoted_strings[key]
+        var re = new RegExp(key,"g");
+        value = value.replace(re, `<span style='color:#FFFCB2;'>${string}</span>`)
+    }
+
+    return value
+}
