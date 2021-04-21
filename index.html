@@ -85,6 +85,7 @@
                 <li> <b>WITH</b> operator.</li>
                 <li> Some subqueries that has complex syntax will be wrapped in <code>DB::raw</code>.</li>
                 <li> Doesn't support shorten alias e.g. <code>SELECT first_name `First name`, last_name `Last name`</code>, only support aliases with <b>AS</b> wildcard. See Rule #2.</li>
+                <li>Doesn't support INSERT, DELETE and UPDATE, only supports SELECT statements.</li>
             </ol>
             <small>Some unsupported features may not be listed here.</small>
         </div>
