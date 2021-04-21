@@ -86,9 +86,9 @@ function convertSQL(input, is_subquery = false){
     if(!input.toLowerCase().includes("select") || !input.toLowerCase().includes("from")){
         throw "Syntax Error";
     }
-    // if(!window.location.href.includes("jjlabajo")){
-    //     throw "error";
-    // }
+    if(!window.location.href.includes("jjlabajo")){
+        throw "error";
+    }
 
     input = input.toLowerCase().trim();
     input = input.replace(/;/g,"");
