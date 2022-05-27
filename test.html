@@ -1,0 +1,30 @@
+<!doctype html>
+
+<html>
+<head>
+	<title>Prism Copy to Clipboard sample</title>
+	<link rel="stylesheet" href="prism.css" type="text/css" media="screen" />
+	<link rel="stylesheet" href="toolbar.css" type="text/css" media="screen" />
+	<script type="text/javascript" src="prism.js"></script>
+
+	<!-- Adapted from http://dev.misterphilip.com/prism/plugins/toolbar/ --> 
+	<script type="text/javascript" src="toolbar.js"></script>
+
+	<!-- Download at http://zeroclipboard.org/
+		 Be sure to include ZeroClipboard.swf and ZeroClipboard.min.map 
+		 within the same directory your ZeroClipboard.js file
+	-->
+	<script type="text/javascript" src="ZeroClipboard.js"></script>
+</head>
+<body>
+<pre class="code-toolbar">
+<code class="language-javascript">
+(function () {
+	var msg = "A simple test";
+
+	console.log(msg);
+})();
+</code>
+</pre>
+</body>
+</html>
